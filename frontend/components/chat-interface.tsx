@@ -32,7 +32,7 @@ export function ChatInterface() {
   useEffect(() => {
     if (!sessionId) return
     setLoading(true)
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"}/chat/history?sessionId=${sessionId}`)
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "https://chatbot-ai-i2mq.onrender.com/"}/chat/history?sessionId=${sessionId}`)
       .then(res => res.json())
       .then(data => {
         if (data.messages) {
