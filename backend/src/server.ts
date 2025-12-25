@@ -28,7 +28,7 @@ const adapter = new PrismaBetterSqlite3({
 const prisma = new PrismaClient({ adapter });
 
 // --------------------
-// GEMINI SETUP (NEW SDK)
+// GEMINI SETUP
 // --------------------
 const genAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -47,7 +47,7 @@ app.use(express.json());
 // HEALTH CHECK
 // --------------------
 app.get("/", (_req, res) => {
-  res.send("🚀 AI Chat Backend is running");
+  res.send("Customer Support Chat Backend is running");
 });
 
 // --------------------
@@ -70,7 +70,7 @@ app.post("/chat/message", async (req, res) => {
     let conversationId = sessionId;
 
     // --------------------
-    // CREATE OR VALIDATE SESSION
+    // CREATE OR VALIDATE CONVERSATION
     // --------------------
     if (!conversationId) {
       const conversation = await prisma.conversation.create({
@@ -108,9 +108,9 @@ app.post("/chat/message", async (req, res) => {
     });
 
     // --------------------
-    // GENERATE AI RESPONSE
+    // GENERATE SUPPORT RESPONSE
     // --------------------
-    const aiReply = await generateGeminiReply(history);
+    const aiReply = await generateSupportReply(history);
 
     // --------------------
     // SAVE AI MESSAGE
@@ -127,8 +127,8 @@ app.post("/chat/message", async (req, res) => {
       reply: aiReply,
       sessionId: conversationId,
     });
-  } catch (error) {
-    console.error("Chat error:", error);
+  } catch (err) {
+    console.error("Chat error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -152,68 +152,52 @@ app.get("/chat/history", async (req, res) => {
 });
 
 // --------------------
-// GEMINI RESPONSE FUNCTION
+// SUPPORT AGENT LOGIC (CORE FIX)
 // --------------------
-async function generateGeminiReply(history: any[]): Promise<string> {
+async function generateSupportReply(history: any[]): Promise<string> {
   try {
     const faq = `
-Product FAQ — AI Productivity Assistant
+Store Information:
 
-About the Product:
-- An AI-powered assistant for developers and students.
-- Helps with coding, studying, planning, and idea generation.
-- Works entirely online via web browser.
+Business:
+- We are an online e-commerce store.
+- This chat is for customer support only.
 
-Key Features:
-- Conversational AI with session memory.
-- Code explanation, debugging, and optimization.
-- Converts vague ideas into structured plans.
-- Supports long technical explanations.
-- Fast responses powered by Gemini AI.
+Shipping:
+- We ship worldwide, including the USA.
+- Delivery time: 5–10 business days.
+- Tracking details are shared after shipment.
 
-Who Should Use This:
-- Developers writing or learning code.
-- Students preparing notes or understanding concepts.
-- Startup founders brainstorming ideas.
-- Professionals organizing tasks and workflows.
+Returns & Refunds:
+- 30-day return policy.
+- Items must be unused and in original packaging.
+- Refunds are processed within 5–7 business days after approval.
 
-Pricing:
-- Free plan with limited daily messages.
-- Pro plan includes unlimited chats and priority speed.
-- Monthly and yearly billing options available.
-
-Privacy & Data:
-- Chats are securely stored per session.
-- No data is sold or shared.
-- Users can request deletion of chat history.
-- Conversations are not used to train public models.
-
-Technical Info:
-- Requires internet connection.
-- Best used on Chrome, Firefox, or Edge.
-- Markdown supported in replies.
+Orders:
+- Orders can be canceled within 24 hours of placement.
+- Orders cannot be canceled once shipped.
 
 Support:
-- Monday–Friday, 9am–6pm IST.
-- Email and in-app support available.
-- Typical response time under 24 hours.
+- Available Monday–Friday, 9 AM–6 PM.
+- Contact via chat or email.
 
-Refund Policy:
-- 7-day refund window for Pro users.
-- Refunds subject to fair usage.
+Rules:
+- Only answer store-related questions.
+- Do not guess or invent information.
+- If a question is unrelated, politely refuse.
 `;
 
     const conversationText = history
       .map(
-        (m) => `${m.sender === "user" ? "User" : "Agent"}: ${m.text}`
+        (m) => `${m.sender === "user" ? "Customer" : "Support"}: ${m.text}`
       )
       .join("\n");
 
     const prompt = `
-You are a knowledgeable support agent for an AI productivity product.
-Proactively explain features, benefits, and best use cases.
-If the user seems unsure, suggest how the product can help them.
-Keep responses friendly, concise, and clear.
+You are a customer support agent for an online store.
+Answer ONLY using the information below.
+Do NOT act as a general AI assistant.
+Keep responses short, polite, and professional.
 
 ${faq}
 
@@ -231,10 +215,10 @@ ${conversationText}
       ],
     });
 
-    return result.text ?? "Sorry, I couldn't generate a response.";
-  } catch (error) {
-    console.error("Gemini error:", error);
-    return "Sorry, there was an issue with the AI response.";
+    return result.text ?? "Sorry, I don’t have that information.";
+  } catch (err) {
+    console.error("Gemini error:", err);
+    return "Sorry, something went wrong. Please try again.";
   }
 }
 
