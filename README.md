@@ -1,8 +1,9 @@
 CHATBOT.AI 
 
-Frontend deployed on VERCEL
+>Frontend deployed on VERCEL
 
-Backend deployed on Render 
+>Backend deployed on RENDER
 
-#Chatbot.AI is a chatbot for a buissness that delivers product across the globe
-#you can ask questions related to their Products
+>Chatbot.AI is a chatbot for a buissness that delivers product across the globe
+
+>you can ask questions related to their Products
