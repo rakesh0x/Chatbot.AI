@@ -19,7 +19,7 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 // --------------------
-// PRISMA SETUP
+// PRISMA SETUP (SQLite)
 // --------------------
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL,
@@ -47,7 +47,7 @@ app.use(express.json());
 // HEALTH CHECK
 // --------------------
 app.get("/", (_req, res) => {
-  res.send("AI Chat Backend is running");
+  res.send("🚀 AI Chat Backend is running");
 });
 
 // --------------------
@@ -69,9 +69,13 @@ app.post("/chat/message", async (req, res) => {
 
     let conversationId = sessionId;
 
-    // Create or validate conversation
+    // --------------------
+    // CREATE OR VALIDATE SESSION
+    // --------------------
     if (!conversationId) {
-      const conversation = await prisma.conversation.create({ data: {} });
+      const conversation = await prisma.conversation.create({
+        data: {},
+      });
       conversationId = conversation.id;
     } else {
       const exists = await prisma.conversation.findUnique({
@@ -83,7 +87,9 @@ app.post("/chat/message", async (req, res) => {
       }
     }
 
-    // Save user message
+    // --------------------
+    // SAVE USER MESSAGE
+    // --------------------
     await prisma.message.create({
       data: {
         conversationId,
@@ -92,17 +98,23 @@ app.post("/chat/message", async (req, res) => {
       },
     });
 
-    // Fetch last 10 messages
+    // --------------------
+    // FETCH LAST 10 MESSAGES
+    // --------------------
     const history = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { timestamp: "asc" },
       take: 10,
     });
 
-    // Generate AI reply
+    // --------------------
+    // GENERATE AI RESPONSE
+    // --------------------
     const aiReply = await generateGeminiReply(history);
 
-    // Save AI reply
+    // --------------------
+    // SAVE AI MESSAGE
+    // --------------------
     await prisma.message.create({
       data: {
         conversationId,
@@ -115,8 +127,8 @@ app.post("/chat/message", async (req, res) => {
       reply: aiReply,
       sessionId: conversationId,
     });
-  } catch (err) {
-    console.error("Chat endpoint error:", err);
+  } catch (error) {
+    console.error("Chat error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -140,31 +152,73 @@ app.get("/chat/history", async (req, res) => {
 });
 
 // --------------------
-// GEMINI REPLY FUNCTION
+// GEMINI RESPONSE FUNCTION
 // --------------------
 async function generateGeminiReply(history: any[]): Promise<string> {
   try {
     const faq = `
-Store FAQ:
-- Shipping: We ship worldwide, including USA.
-- Returns: 30-day return/refund policy.
-- Support: Mon–Fri, 9am–6pm.
+Product FAQ — AI Productivity Assistant
+
+About the Product:
+- An AI-powered assistant for developers and students.
+- Helps with coding, studying, planning, and idea generation.
+- Works entirely online via web browser.
+
+Key Features:
+- Conversational AI with session memory.
+- Code explanation, debugging, and optimization.
+- Converts vague ideas into structured plans.
+- Supports long technical explanations.
+- Fast responses powered by Gemini AI.
+
+Who Should Use This:
+- Developers writing or learning code.
+- Students preparing notes or understanding concepts.
+- Startup founders brainstorming ideas.
+- Professionals organizing tasks and workflows.
+
+Pricing:
+- Free plan with limited daily messages.
+- Pro plan includes unlimited chats and priority speed.
+- Monthly and yearly billing options available.
+
+Privacy & Data:
+- Chats are securely stored per session.
+- No data is sold or shared.
+- Users can request deletion of chat history.
+- Conversations are not used to train public models.
+
+Technical Info:
+- Requires internet connection.
+- Best used on Chrome, Firefox, or Edge.
+- Markdown supported in replies.
+
+Support:
+- Monday–Friday, 9am–6pm IST.
+- Email and in-app support available.
+- Typical response time under 24 hours.
+
+Refund Policy:
+- 7-day refund window for Pro users.
+- Refunds subject to fair usage.
 `;
 
-    const historyText = history
+    const conversationText = history
       .map(
         (m) => `${m.sender === "user" ? "User" : "Agent"}: ${m.text}`
       )
       .join("\n");
 
     const prompt = `
-You are a helpful support agent for a small e-commerce store.
-Answer clearly and concisely.
+You are a knowledgeable support agent for an AI productivity product.
+Proactively explain features, benefits, and best use cases.
+If the user seems unsure, suggest how the product can help them.
+Keep responses friendly, concise, and clear.
 
 ${faq}
 
 Conversation:
-${historyText}
+${conversationText}
 `;
 
     const result = await genAI.models.generateContent({
@@ -177,10 +231,10 @@ ${historyText}
       ],
     });
 
-    return result.text ?? "No response from AI.";
-  } catch (err) {
-    console.error("Gemini Error:", err);
-    return "Sorry, there was an error with the AI agent.";
+    return result.text ?? "Sorry, I couldn't generate a response.";
+  } catch (error) {
+    console.error("Gemini error:", error);
+    return "Sorry, there was an issue with the AI response.";
   }
 }
 
@@ -188,5 +242,5 @@ ${historyText}
 // START SERVER
 // --------------------
 app.listen(PORT, () => {
-  console.log(`🚀 Server listening on port ${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
